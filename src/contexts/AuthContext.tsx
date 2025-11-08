@@ -31,13 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(storedToken);
       authAPI.setToken(storedToken);
       // Verify token and get user info
-      verifyToken(storedToken);
+      verifyToken();
     } else {
       setLoading(false);
     }
   }, []);
 
-  const verifyToken = async (tokenToVerify: string) => {
+  const verifyToken = async () => {
     try {
       const response = await authAPI.verify();
       if (response.valid) {

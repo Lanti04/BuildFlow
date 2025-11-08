@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Camera, Edit, Phone, FileText, DollarSign, Clock, X, Plus } from 'lucide-react';
+import { Camera, Edit, Phone, FileText, DollarSign, Clock, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SiteVisit, Photo, Contact } from '../types';
 import { saveSiteVisit } from '../utils/storage';

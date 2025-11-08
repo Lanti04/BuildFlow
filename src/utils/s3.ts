@@ -5,11 +5,11 @@ import { uploadAPI } from './api';
 export async function uploadToS3(
   file: File,
   folder: string = 'uploads',
-  metadata?: Record<string, string>
+  _metadata?: Record<string, string>
 ): Promise<string> {
   try {
     // Get signed URL from backend
-    const { uploadUrl, url, key } = await uploadAPI.getSignedUploadUrl(
+    const { uploadUrl, url } = await uploadAPI.getSignedUploadUrl(
       file.name,
       file.type,
       folder
@@ -40,17 +40,17 @@ export async function uploadToS3(
 export async function uploadImageToS3(
   imageFile: File,
   folder: string = 'photos',
-  metadata?: Record<string, string>
+  _metadata?: Record<string, string>
 ): Promise<string> {
-  return uploadToS3(imageFile, folder, metadata);
+  return uploadToS3(imageFile, folder, _metadata);
 }
 
 export async function uploadPDFToS3(
   pdfFile: File,
   folder: string = 'notepad',
-  metadata?: Record<string, string>
+  _metadata?: Record<string, string>
 ): Promise<string> {
-  return uploadToS3(pdfFile, folder, metadata);
+  return uploadToS3(pdfFile, folder, _metadata);
 }
 
 export async function getSignedReadUrl(key: string): Promise<string> {

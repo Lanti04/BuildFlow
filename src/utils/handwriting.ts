@@ -42,7 +42,6 @@ export function convertPathsToInkStrokes(
 ): AzureInkStroke[] {
   const strokes: AzureInkStroke[] = [];
   let strokeId = 0;
-  let startTime = Date.now();
 
   paths.forEach((path) => {
     if (path.paths && path.paths.length > 0) {
@@ -51,7 +50,7 @@ export function convertPathsToInkStrokes(
         let timeOffset = 0;
 
         if (strokePath.path && strokePath.path.length > 0) {
-          strokePath.path.forEach((point: any, index: number) => {
+          strokePath.path.forEach((point: any) => {
             // Normalize coordinates to 0-1 range (Azure requirement)
             const normalizedX = point.x / canvasWidth;
             const normalizedY = point.y / canvasHeight;
@@ -191,8 +190,8 @@ export interface MyScriptConfig {
 }
 
 export async function recognizeHandwritingMyScript(
-  strokes: InkStroke[],
-  config: MyScriptConfig
+  _strokes: InkStroke[],
+  _config: MyScriptConfig
 ): Promise<string | null> {
   // MyScript integration would go here
   // Requires MyScript SDK: https://webdemo.myscript.com/

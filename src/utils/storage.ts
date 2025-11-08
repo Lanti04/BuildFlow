@@ -88,6 +88,11 @@ export async function getNotepadNote(date: string): Promise<NotepadNote | undefi
   return notes[0];
 }
 
+export async function getAllNotepadNotes(): Promise<NotepadNote[]> {
+  const database = await initDB();
+  return database.getAll('notepadNotes');
+}
+
 // Contacts
 export async function saveContact(contact: Contact): Promise<void> {
   const database = await initDB();

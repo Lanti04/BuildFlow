@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Users, FolderKanban, FileText, LayoutDashboard, LogOut, User, Database } from 'lucide-react';
+import { Calendar, Users, FolderKanban, FileText, LayoutDashboard, LogOut, Database, Cloud } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
@@ -18,6 +18,7 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/projects', icon: FolderKanban, label: 'Projects' },
     { path: '/notepad', icon: FileText, label: 'Notepad' },
     { path: '/storage', icon: Database, label: 'Storage' },
+    { path: '/backup', icon: Cloud, label: 'Backup' },
   ];
 
   return (

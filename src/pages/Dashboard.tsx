@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
-import { Calendar, Plus, FileText } from 'lucide-react';
+import { format, startOfWeek, addDays } from 'date-fns';
+import { FileText } from 'lucide-react';
 import { getAllSiteVisits } from '../utils/storage';
 import { SiteVisit } from '../types';
 import DayCard from '../components/DayCard';

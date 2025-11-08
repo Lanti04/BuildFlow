@@ -28,7 +28,6 @@ function NotepadContent() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
-  const [handwritingEnabled, setHandwritingEnabled] = useState(mode === 'default');
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [showRecognizedText, setShowRecognizedText] = useState(false);
@@ -152,10 +151,10 @@ function NotepadContent() {
 
         // Export
         if (exportFormat === 'png') {
-          const blob = await exportCanvasToImage(exportCanvas, `notepad-${dateStr}.png`);
+          const blob = await exportCanvasToImage(exportCanvas);
           await saveToDevice(blob, `notepad-${dateStr}.png`);
         } else {
-          const blob = await exportToPDF(exportCanvas, `notepad-${dateStr}.pdf`);
+          const blob = await exportToPDF(exportCanvas);
           await saveToDevice(blob, `notepad-${dateStr}.pdf`);
         }
 
@@ -191,16 +190,16 @@ function NotepadContent() {
   };
 
   const handleUndo = () => {
-    canvasRef?.undo();
+    canvasRef.current?.undo();
   };
 
   const handleRedo = () => {
-    canvasRef?.redo();
+    canvasRef.current?.redo();
   };
 
   const handleClear = () => {
     if (confirm('Clear all drawings?')) {
-      canvasRef?.clearCanvas();
+      canvasRef.current?.clearCanvas();
     }
   };
 
@@ -606,8 +605,8 @@ function NotepadContent() {
             >
               <ReactSketchCanvas
                 ref={canvasRef}
-                width={794}
-                height={1123}
+                width="794"
+                height="1123"
                 strokeColor={isDrawing ? strokeColor : '#ffffff'}
                 canvasColor="transparent"
                 strokeWidth={strokeWidth}
@@ -638,8 +637,8 @@ function NotepadContent() {
               )}
               <ReactSketchCanvas
                 ref={canvasRef}
-                width={794}
-                height={1123}
+                width="794"
+                height="1123"
                 strokeColor={isDrawing ? strokeColor : '#ffffff'}
                 canvasColor="transparent"
                 strokeWidth={strokeWidth}

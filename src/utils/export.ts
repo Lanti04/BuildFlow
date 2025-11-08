@@ -2,8 +2,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 export async function exportCanvasToImage(
-  canvas: HTMLCanvasElement,
-  filename: string = 'notepad-export.png'
+  canvas: HTMLCanvasElement
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -22,7 +21,6 @@ export async function exportCanvasToImage(
 
 export async function exportToPDF(
   element: HTMLElement | HTMLCanvasElement,
-  filename: string = 'notepad-export.pdf',
   options?: {
     width?: number;
     height?: number;
