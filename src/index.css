@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .paper-bg {
+    background-image: 
+      repeating-linear-gradient(
+        transparent,
+        transparent 31px,
+        #e0e0e0 31px,
+        #e0e0e0 32px
+      );
+    background-size: 100% 32px;
+  }
+}
+
+.signature-canvas {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.touch-none {
+  touch-action: none;
+}
+
+/* Improve canvas rendering for iPad */
+canvas {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
