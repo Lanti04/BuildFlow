@@ -2,14 +2,14 @@
   "name": "BuildFlow - Construction Site Management",
   "short_name": "BuildFlow",
   "description": "Manage daily site visits, photos, client info, and signable notes",
-  "start_url": "/",
+  "start_url": "/BuildFlow/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/vite.svg",
+      "src": "/BuildFlow/vite.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

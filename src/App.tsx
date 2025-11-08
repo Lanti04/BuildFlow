@@ -41,7 +41,7 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/BuildFlow">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
