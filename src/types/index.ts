@@ -1,3 +1,5 @@
+// src/types/index.ts
+
 export interface SiteVisit {
   id: string;
   date: string; // ISO date string
@@ -32,18 +34,30 @@ export interface NotepadNote {
   date: string;
   mode: 'default' | 'custom';
   templateUrl?: string;
-  canvasData: string; // JSON string of canvas state
-  signature?: string; // Base64 image
+  canvasData: string;
+  signature?: string;
+  images?: ImageOverlay[];   // Only saved data
   exported?: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CanvasStroke {
-  type: 'pen' | 'erase';
-  points: { x: number; y: number; pressure?: number }[];
-  color: string;
+export interface ImageOverlay {
+  id: string;
+  url: string;
+  x: number;
+  y: number;
   width: number;
-  timestamp: number;
+  height: number;
 }
 
+// NEW: Runtime-only state (not saved)
+export interface ImageOverlayWithState extends ImageOverlay {
+  isDragging?: boolean;
+  isResizing?: boolean;
+  resizeHandle?: 'tl' | 'tr' | 'bl' | 'br' | 't' | 'b' | 'l' | 'r';
+  originalX?: number;
+  originalY?: number;
+  originalWidth?: number;
+  originalHeight?: number;
+}
