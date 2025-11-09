@@ -1,11 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  base: '/BuildFlow/',
   plugins: [react()],
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-  },
+  base: '/BuildFlow/', // 👈 This must match your repo name exactly (case-sensitive)
 })
