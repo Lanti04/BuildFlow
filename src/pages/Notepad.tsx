@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { NotepadNote, ImageOverlay, ImageOverlayWithState } from '../types';
 import {
   Save, Upload, Download, Undo, Redo, Eraser, Pen,
   ZoomIn, ZoomOut, X, Sparkles, Type, AlignLeft, Camera, Trash2
@@ -12,12 +11,8 @@ import SignatureCanvas from 'react-signature-canvas';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { saveNotepadNote, getNotepadNote } from '../utils/storage';
 import { exportCanvasToImage, exportToPDF, saveToDevice } from '../utils/export';
-import {
-  convertPathsToInkStrokes,
-  recognizeHandwriting,
-  type RecognitionFullResult,
-} from '../utils/handwriting';
-import { azureConfig, isAzureConfigured } from '../config/azure';
+import { NotepadNote, ImageOverlay, ImageOverlayWithState } from '../types';
+import { recognizeHandwriting, getTextLines } from '../utils/ocr';
 
 function NotepadContent() {
   const { date } = useParams<{ date: string }>();
@@ -47,7 +42,6 @@ function NotepadContent() {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const alignTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // ---------- Load Note ----------
   useEffect(() => {
@@ -61,7 +55,7 @@ function NotepadContent() {
 
     setMode(note.mode);
     setTemplateUrl(note.templateUrl || null);
-    setImages(note.images || []);
+    setImages((note.images || []).map(img => ({ ...img } as ImageOverlayWithState)));
 
     if (note.canvasData && canvasRef.current) {
       try {
@@ -84,10 +78,8 @@ function NotepadContent() {
     if (!canvasRef.current) return;
     const paths = await canvasRef.current.exportPaths();
     const signature = signatureRef.current?.toDataURL() || undefined;
-  
-    // Strip runtime-only fields before saving
     const cleanImages: ImageOverlay[] = images.map(({ isDragging, isResizing, resizeHandle, originalX, originalY, originalWidth, originalHeight, ...rest }) => rest);
-  
+
     const note: NotepadNote = {
       id: `note-${dateStr}`,
       date: dateStr,
@@ -134,7 +126,6 @@ function NotepadContent() {
       }
 
       ctx.drawImage(img, 0, 0);
-
       for (const imgOverlay of images) {
         const imgEl = new Image();
         imgEl.src = imgOverlay.url;
@@ -149,9 +140,7 @@ function NotepadContent() {
         ctx.drawImage(sig, 20, out.height - 120, 200, 100);
       }
 
-      const blob = fmt === 'png'
-        ? await exportCanvasToImage(out)
-        : await exportToPDF(out);
+      const blob = fmt === 'png' ? await exportCanvasToImage(out) : await exportToPDF(out);
       await saveToDevice(blob, `notepad-${dateStr}.${fmt}`);
       alert(`Exported as ${fmt.toUpperCase()}`);
     } catch (e) {
@@ -172,7 +161,7 @@ function NotepadContent() {
     reader.readAsDataURL(file);
   };
 
-  // ---------- Camera ----------
+  // ---------- Camera & Paste ----------
   const handleCamera = () => {
     cameraInputRef.current?.setAttribute('capture', 'environment');
     cameraInputRef.current?.click();
@@ -191,12 +180,8 @@ function NotepadContent() {
       }
       const x = (794 - w) / 2;
       const y = (1123 - h) / 2;
-  
-      const overlay: ImageOverlayWithState = {
-        id: `img-${Date.now()}`,
-        url,
-        x, y, width: w, height: h,
-      };
+
+      const overlay: ImageOverlayWithState = { id: `img-${Date.now()}`, url, x, y, width: w, height: h };
       setImages(prev => [...prev, overlay]);
       setSelectedImageId(overlay.id);
       URL.revokeObjectURL(url);
@@ -208,7 +193,6 @@ function NotepadContent() {
     if (file) insertImage(file);
   };
 
-  // ---------- Paste from Clipboard ----------
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
@@ -228,8 +212,6 @@ function NotepadContent() {
   // ---------- Image Interaction ----------
   const startImageDrag = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const img = images.find(i => i.id === id);
-    if (!img) return;
     setImages(prev => prev.map(i => i.id === id ? { ...i, isDragging: true, originalX: i.x, originalY: i.y } : i));
     setSelectedImageId(id);
   };
@@ -252,8 +234,8 @@ function NotepadContent() {
 
   const moveImage = useCallback((e: MouseEvent) => {
     const selected = images.find(i => i.isDragging || i.isResizing);
-    if (!selected) return;
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    if (!selected || !canvasContainerRef.current) return;
+    const rect = canvasContainerRef.current.getBoundingClientRect();
     const dx = e.clientX - rect.left;
     const dy = e.clientY - rect.top;
 
@@ -348,68 +330,69 @@ function NotepadContent() {
     });
   };
 
-  // ---------- Line Snap ----------
-  const getLineYs = (h: number) => Array.from({ length: Math.floor(h / 32) }, (_, i) => 40 + i * 32);
-  const nearestLineY = (target: number, ys: number[]) => ys.reduce((a, b) => Math.abs(b - target) < Math.abs(a - target) ? b : a);
-
-  const scheduleAlignment = () => {
-    if (alignTimerRef.current) clearTimeout(alignTimerRef.current);
-    alignTimerRef.current = setTimeout(handleAlignToLines, 2000);
+  // ---------- OCR: Handwriting Recognition ----------
+  const handleRecognize = async () => {
+    if (!canvasRef.current) return;
+    setIsRecognizing(true);
+    try {
+      const imageDataUrl = await canvasRef.current.exportImage('png');
+      const text = await recognizeHandwriting(imageDataUrl);
+      if (text) {
+        setRecognizedText(text);
+        setShowRecognizedText(true);
+      } else {
+        alert('No text detected. Try writing more clearly.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Recognition failed.');
+    } finally {
+      setIsRecognizing(false);
+    }
   };
 
+  // ---------- OCR: Line Snap ----------
   const handleAlignToLines = async () => {
-    if (!canvasRef.current || mode !== 'default' || !isAzureConfigured()) return;
+    if (!canvasRef.current) return;
     setIsAligning(true);
     try {
-      const canvasEl = canvasContainerRef.current?.querySelector('canvas');
-      if (!canvasEl) return;
-      const w = canvasEl.width || 794;
-      const h = canvasEl.height || 1123;
-      const lineYs = getLineYs(h);
-      const paths = await canvasRef.current.exportPaths();
-      const strokes = convertPathsToInkStrokes(paths, w, h);
-      const full = await recognizeHandwriting(strokes, azureConfig.language, azureConfig.apiKey, azureConfig.endpoint);
-      if (!full?.raw?.recognitionUnits?.length) return;
+      const imageDataUrl = await canvasRef.current.exportImage('png');
+      const lines = await getTextLines(imageDataUrl);
+      if (!lines.length) return;
 
-      const idToIdx = new Map<number, number>();
-      paths.forEach((_, i) => idToIdx.set(i + 1, i));
+      const paths = await canvasRef.current.exportPaths();
+      const canvasEl = canvasContainerRef.current?.querySelector('canvas');
+      const h = canvasEl?.height || 1123;
+      const lineYs = Array.from({ length: Math.floor(h / 32) }, (_, i) => 40 + i * 32);
       const adjusted = [...paths];
 
-      full.raw.recognitionUnits.forEach((unit: any) => {
-        if (unit.category !== 'line') return;
-        const bb = unit.boundingRectangle || unit.boundingBox;
-        const avgY = bb.y + bb.height / 2;
-        const targetY = nearestLineY(avgY, lineYs);
+      lines.forEach(line => {
+        const avgY = (line.bbox.y0 + line.bbox.y1) / 2;
+        const targetY = lineYs.reduce((a, b) => Math.abs(b - avgY) < Math.abs(a - avgY) ? b : a);
         const deltaY = targetY - avgY;
-        (unit.strokeIds || []).forEach((sid: number) => {
-          const idx = idToIdx.get(sid);
-          if (idx === undefined) return;
-          adjusted[idx].paths?.forEach((sp: any) => {
-            sp.path = sp.path.map((p: any) => ({ ...p, y: p.y + deltaY }));
-          });
+
+        paths.forEach((path, idx) => {
+          const firstPoint = path.paths?.[0];
+          if (firstPoint && Math.abs(firstPoint.y - avgY) < 60) {
+            adjusted[idx] = {
+              ...adjusted[idx],
+              paths: (adjusted[idx].paths || []).map(p => ({
+                ...p,
+                x: p.x,
+                y: p.y + deltaY,
+              })),
+            };
+          }
         });
       });
 
       canvasRef.current.clearCanvas();
       await canvasRef.current.loadPaths(adjusted);
-    } catch (e) { console.error(e); } finally { setIsAligning(false); }
-  };
-
-  const handleRecognize = async () => {
-    if (!canvasRef.current || !isAzureConfigured()) return;
-    setIsRecognizing(true);
-    try {
-      const canvasEl = canvasContainerRef.current?.querySelector('canvas');
-      const w = canvasEl?.width || 794;
-      const h = canvasEl?.height || 1123;
-      const paths = await canvasRef.current.exportPaths();
-      const strokes = convertPathsToInkStrokes(paths, w, h);
-      const full = await recognizeHandwriting(strokes, azureConfig.language, azureConfig.apiKey, azureConfig.endpoint);
-      if (full?.result?.recognizedText) {
-        setRecognizedText(full.result.recognizedText);
-        setShowRecognizedText(true);
-      }
-    } catch (e) { console.error(e); } finally { setIsRecognizing(false); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsAligning(false);
+    }
   };
 
   // ---------- Pan ----------
@@ -427,12 +410,12 @@ function NotepadContent() {
   const endPan = () => setIsPanning(false);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Notepad</h1>
-          <p className="text-gray-600 mt-1">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</p>
+          <p className="text-gray-600">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</p>
         </div>
         <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
           <Save className="w-5 h-5" /> Save
@@ -481,11 +464,15 @@ function NotepadContent() {
         {mode === 'default' && (
           <>
             <div className="flex items-center gap-2 border-l pl-4">
-              <button onClick={handleRecognize} disabled={isRecognizing || !isAzureConfigured()} className={`p-2 rounded-lg ${isRecognizing ? 'bg-gray-300' : isAzureConfigured() ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' : 'bg-gray-100 text-gray-400'}`}><Sparkles className="w-5 h-5" /></button>
+              <button onClick={handleRecognize} disabled={isRecognizing} className={`p-2 rounded-lg ${isRecognizing ? 'bg-gray-300' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`} title="Recognize handwriting">
+                <Sparkles className="w-5 h-5" />
+              </button>
               {isRecognizing && <span className="text-sm">Recognizing…</span>}
             </div>
             <div className="flex items-center gap-2 border-l pl-4">
-              <button onClick={handleAlignToLines} disabled={isAligning || !isAzureConfigured()} className={`p-2 rounded-lg ${isAligning ? 'bg-gray-300' : isAzureConfigured() ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' : 'bg-gray-100 text-gray-400'}`}><AlignLeft className="w-5 h-5" /></button>
+              <button onClick={handleAlignToLines} disabled={isAligning} className={`p-2 rounded-lg ${isAligning ? 'bg-gray-300' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`} title="Snap to lines">
+                <AlignLeft className="w-5 h-5" />
+              </button>
               {isAligning && <span className="text-sm">Aligning…</span>}
             </div>
           </>
@@ -498,7 +485,7 @@ function NotepadContent() {
         </div>
 
         <div className="flex items-center gap-2 border-l pl-4">
-          <button onClick={handleCamera} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"><Camera className="w-5 h-5" /></button>
+          <button onClick={handleCamera} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" title="Take Photo"><Camera className="w-5 h-5" /></button>
         </div>
 
         <div className="flex gap-2 border-l pl-4 ml-auto">
@@ -547,7 +534,6 @@ function NotepadContent() {
                 strokeWidth={strokeWidth}
                 eraserWidth={strokeWidth * 5}
                 style={{ border: 'none', position: 'absolute', inset: 0 }}
-                onChange={() => mode === 'default' && scheduleAlignment()}
               />
             </div>
           ) : (
