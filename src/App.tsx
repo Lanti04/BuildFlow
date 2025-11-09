@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
@@ -13,6 +13,28 @@ import StorageInfo from './pages/StorageInfo';
 import Backup from './pages/Backup';
 import { initDB } from './utils/storage';
 import { performAutomaticBackup, shouldPerformBackup } from './utils/backup';
+
+// Component to handle 404.html redirects for GitHub Pages
+function RedirectHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if we're coming from a 404.html redirect
+    // The 404.html script redirects to /BuildFlow/?/path/to/route
+    const searchParams = new URLSearchParams(location.search);
+    const redirectPath = searchParams.get('/');
+    
+    if (redirectPath) {
+      // Decode the path (replace ~and~ with &)
+      const decodedPath = redirectPath.replace(/~and~/g, '&');
+      // Navigate to the decoded path
+      navigate(decodedPath, { replace: true });
+    }
+  }, [location.search, navigate]);
+
+  return null;
+}
 
 function App() {
   useEffect(() => {
@@ -42,6 +64,7 @@ function App() {
   return (
     <AuthProvider>
       <Router basename="/BuildFlow">
+        <RedirectHandler />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route

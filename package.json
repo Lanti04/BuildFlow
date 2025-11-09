@@ -11,7 +11,8 @@
     "cap:sync": "cap sync",
     "cap:open:ios": "cap open ios",
     "cap:add:ios": "cap add ios",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build && npm run fix-404",
+    "fix-404": "node scripts/fix-404.js",
     "deploy": "gh-pages -d dist --dotfiles"
   },
   "dependencies": {
