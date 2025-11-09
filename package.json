@@ -12,7 +12,7 @@
     "cap:open:ios": "cap open ios",
     "cap:add:ios": "cap add ios",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist --dotfiles"
   },
   "dependencies": {
     "@capacitor/app": "^5.0.6",
