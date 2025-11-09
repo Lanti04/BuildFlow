@@ -15,7 +15,14 @@ const PORT = process.env.PORT || 3001;
 initializeTestUser().catch(console.error);
 
 // Middleware
-app.use(cors());
+// Configure CORS to allow requests from GitHub Pages and localhost
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',')
+    : ['https://lanti04.github.io', 'http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
