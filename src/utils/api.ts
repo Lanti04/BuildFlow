@@ -23,17 +23,25 @@ class APIClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || `HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      // Handle network errors gracefully (e.g., backend not available)
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        throw new Error('Backend server is not available. Please ensure the server is running or configure VITE_API_BASE_URL.');
+      }
+      throw error;
     }
-
-    return response.json();
   }
 
   async get<T>(endpoint: string): Promise<T> {

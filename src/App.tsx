@@ -42,12 +42,23 @@ function App() {
     initDB().catch(console.error);
     
     // Perform automatic backup if needed (every 24 hours)
+    // Only attempt if backend is configured (not localhost in production)
     const checkAndBackup = async () => {
       if (shouldPerformBackup()) {
+        // Check if we have a backend configured
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+        const isLocalhost = apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
+        const isProduction = import.meta.env.PROD;
+        
+        // Skip automatic backup if using localhost in production (backend not available)
+        if (isProduction && isLocalhost) {
+          return;
+        }
+        
         try {
           await performAutomaticBackup();
         } catch (error) {
-          console.warn('Automatic backup failed (this is OK if S3 is not configured):', error);
+          // Errors are already handled silently in performAutomaticBackup
         }
       }
     };

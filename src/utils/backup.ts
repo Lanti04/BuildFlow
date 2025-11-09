@@ -124,7 +124,16 @@ export async function performAutomaticBackup(): Promise<boolean> {
     console.log('Automatic backup completed:', backupUrl);
     return true;
   } catch (error) {
-    console.error('Automatic backup failed:', error);
+    // Silently fail if backend is not available (expected in production without backend)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('Backend server is not available') || 
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('ERR_BLOCKED_BY_CLIENT')) {
+      // Backend not available - this is expected and OK
+      return false;
+    }
+    // Only log unexpected errors
+    console.warn('Automatic backup failed (this is OK if S3 is not configured):', errorMessage);
     return false;
   }
 }
