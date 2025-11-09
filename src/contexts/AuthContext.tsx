@@ -48,29 +48,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authAPI.setToken(null);
       }
     } catch (error) {
-      console.error('Token verification failed:', error);
-      localStorage.removeItem('authToken');
-      setToken(null);
-      authAPI.setToken(null);
+      // Silently fail token verification if backend is not available
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Backend server is not available') || 
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('ERR_BLOCKED_BY_CLIENT')) {
+        // Backend not available - clear auth and continue
+        localStorage.removeItem('authToken');
+        setToken(null);
+        authAPI.setToken(null);
+      } else {
+        console.error('Token verification failed:', error);
+        localStorage.removeItem('authToken');
+        setToken(null);
+        authAPI.setToken(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
-    const response = await authAPI.login(email, password);
-    setToken(response.token);
-    setUser(response.user);
-    localStorage.setItem('authToken', response.token);
-    authAPI.setToken(response.token);
+    try {
+      const response = await authAPI.login(email, password);
+      setToken(response.token);
+      setUser(response.user);
+      localStorage.setItem('authToken', response.token);
+      authAPI.setToken(response.token);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Backend server is not available') || 
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('ERR_BLOCKED_BY_CLIENT')) {
+        throw new Error('Backend server is not available. Please ensure the server is running or configure VITE_API_BASE_URL environment variable.');
+      }
+      throw error;
+    }
   };
 
   const register = async (email: string, password: string, name?: string) => {
-    const response = await authAPI.register(email, password, name);
-    setToken(response.token);
-    setUser(response.user);
-    localStorage.setItem('authToken', response.token);
-    authAPI.setToken(response.token);
+    try {
+      const response = await authAPI.register(email, password, name);
+      setToken(response.token);
+      setUser(response.user);
+      localStorage.setItem('authToken', response.token);
+      authAPI.setToken(response.token);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Backend server is not available') || 
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('ERR_BLOCKED_BY_CLIENT')) {
+        throw new Error('Backend server is not available. Please ensure the server is running or configure VITE_API_BASE_URL environment variable.');
+      }
+      throw error;
+    }
   };
 
   const logout = () => {
