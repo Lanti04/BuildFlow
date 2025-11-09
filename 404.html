@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="icon" type="image/svg+xml" href="/BuildFlow/vite.svg" />
+    <link rel="manifest" href="/BuildFlow/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BuildFlow</title>
+    <script>
+      // Single Page Apps for GitHub Pages
+      // https://github.com/rafgraph/spa-github-pages
+      // This script takes the current url and converts the path and query
+      // string into just a query string, and then redirects the browser
+      // to the new url with only a query string and hash fragment,
+      // e.g., https://www.foo.tld/BuildFlow/dashboard becomes
+      // https://www.foo.tld/BuildFlow/?/dashboard
+      // Note: this 404.html file must be at least 512 bytes for some
+      // browsers to see it. Otherwise they will ignore it and the default
+      // GitHub 404 page will show.
+      (function() {
+        var pathSegmentsToKeep = 1; // Keep /BuildFlow/ in the path
+
+        var l = window.location;
+        var pathname = l.pathname;
+        
+        // Extract the path after /BuildFlow/
+        var pathParts = pathname.split('/');
+        var buildFlowIndex = pathParts.indexOf('BuildFlow');
+        
+        if (buildFlowIndex !== -1 && pathParts.length > buildFlowIndex + 1) {
+          // We have a path after /BuildFlow/
+          var routePath = pathParts.slice(buildFlowIndex + 1).join('/');
+          l.replace(
+            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+            '/BuildFlow/?/' + routePath.replace(/&/g, '~and~') +
+            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash
+          );
+        } else {
+          // No route path, just redirect to base
+          l.replace(
+            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+            '/BuildFlow/'
+          );
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
